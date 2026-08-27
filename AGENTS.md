@@ -1,3 +1,5 @@
+# The challenge and its level structure
+
 When executing a level make use of the incident-analysis-boundary skill.
 
 A level is run with parameters:
@@ -15,3 +17,7 @@ The requirements of each level change. The user has to provide the specific requ
 A level run for a dataset is finished by:
 - `dataset=dev`: `dev_check`
 - `dataset=eval`: `submit`
+
+## Hint
+
+Always explore the whole mcp tool and cli interface before starting to solve a level.
