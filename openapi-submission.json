@@ -1,0 +1,124 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Log-analysis challenge submission API",
+    "version": "1.0.0",
+    "description": "Run lifecycle, answer testing, and answer submission operations. Every /v1 request requires a Bearer API key."
+  },
+  "servers": [{ "url": "https://challenge.janitor.check24.global", "description": "Challenge API host (the real host is provided separately)" }],
+  "tags": [
+    { "name": "Runs", "description": "Start dataset runs" },
+    { "name": "Submissions", "description": "Test and submit level answers" }
+  ],
+  "paths": {
+    "/v1/{client}/{dataset}/{level}/start": {
+      "post": {
+        "tags": ["Runs"],
+        "operationId": "startRun",
+        "summary": "Start a dataset run for a level",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/client" }, { "$ref": "#/components/parameters/dataset" }, { "$ref": "#/components/parameters/level" }],
+        "responses": {
+          "200": { "description": "The open run, returned idempotently when already started.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RunStarted" } } } },
+          "401": { "$ref": "#/components/responses/unauthorized" },
+          "409": { "$ref": "#/components/responses/levelAlreadyCompleted" }
+        }
+      }
+    },
+    "/v1/{client}/submit/{level}": {
+      "post": {
+        "tags": ["Submissions"],
+        "operationId": "submitAnswer",
+        "summary": "Submit an answer against the eval dataset",
+        "description": "Start the eval run before submitting. Eval submissions are limited to 10 attempts for L1–L6; L0 is unlimited.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/client" }, { "$ref": "#/components/parameters/level" }],
+        "requestBody": { "$ref": "#/components/requestBodies/levelSubmission" },
+        "responses": {
+          "200": { "$ref": "#/components/responses/submissionResult" },
+          "400": { "$ref": "#/components/responses/badParam" },
+          "401": { "$ref": "#/components/responses/unauthorized" },
+          "403": { "$ref": "#/components/responses/notStarted" },
+          "409": { "$ref": "#/components/responses/levelAlreadyCompleted" },
+          "429": { "$ref": "#/components/responses/attemptsExhausted" },
+          "423": { "$ref": "#/components/responses/challengeStopped" }
+        }
+      }
+    },
+    "/v1/{client}/dev-check/{level}": {
+      "post": {
+        "tags": ["Submissions"],
+        "operationId": "devCheckAnswer",
+        "summary": "Test an answer against the dev dataset",
+        "description": "Dev checks are unlimited. Start the dev run for the level before calling this endpoint.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/client" }, { "$ref": "#/components/parameters/level" }],
+        "requestBody": { "$ref": "#/components/requestBodies/levelSubmission" },
+        "responses": {
+          "200": { "$ref": "#/components/responses/devCheckResult" },
+          "400": { "$ref": "#/components/responses/badParam" },
+          "401": { "$ref": "#/components/responses/unauthorized" },
+          "403": { "$ref": "#/components/responses/notStarted" },
+          "409": { "$ref": "#/components/responses/levelAlreadyCompleted" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "description": "Opaque team API key. Keep it out of shell history and command-line arguments." }
+    },
+    "parameters": {
+      "client": { "name": "client", "in": "path", "required": true, "description": "Client surface used for scoring attribution.", "schema": { "type": "string", "enum": ["cli", "mcp"] } },
+      "dataset": { "name": "dataset", "in": "path", "required": true, "schema": { "type": "string", "enum": ["dev", "eval"] } },
+      "level": { "name": "level", "in": "path", "required": true, "schema": { "type": "string", "enum": ["l0", "l1", "l2", "l3", "l4", "l5", "l6"] } }
+    },
+    "requestBodies": {
+      "levelSubmission": {
+        "required": true,
+        "description": "Answer body for the selected level. The exact shape is selected by the level path parameter.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LevelSubmission" } } }
+      }
+    },
+    "responses": {
+      "submissionResult": { "description": "Submission verdict and attempt counters.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SubmissionResult" } } } },
+      "devCheckResult": { "description": "Dev-check verdict and attempt counters.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SubmissionResult" } } } },
+      "badParam": { "description": "Malformed or out-of-range request.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "unauthorized": { "description": "Missing, malformed, revoked, or unknown API key.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "notStarted": { "description": "The required dataset run has not been started.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "attemptsExhausted": { "description": "The eval attempt limit has been reached.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "challengeStopped": { "description": "The administrator has stopped accepting eval submissions.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "levelAlreadyCompleted": { "description": "The level has already been completed.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": { "error": { "type": "string" }, "detail": { "type": "string" } },
+        "additionalProperties": false
+      },
+      "RunStarted": {
+        "type": "object",
+        "required": ["run_id", "started_at"],
+        "properties": { "run_id": { "type": "string" }, "started_at": { "type": "string", "format": "date-time" } },
+        "additionalProperties": false
+      },
+      "LevelSubmission": {
+        "oneOf": [
+          { "type": "object", "required": ["value"], "properties": { "value": { "type": "string", "minLength": 1 } }, "additionalProperties": false },
+          { "type": "object", "required": ["count"], "properties": { "count": { "type": "integer", "minimum": 0 } }, "additionalProperties": false },
+          { "type": "object", "required": ["services"], "properties": { "services": { "type": "array", "items": { "type": "string" }, "minItems": 3, "maxItems": 3 } }, "additionalProperties": false },
+          { "type": "object", "required": ["templates"], "properties": { "templates": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "type": "object", "required": ["template", "count"], "properties": { "template": { "type": "string", "minLength": 1 }, "count": { "type": "integer", "minimum": 0 } }, "additionalProperties": false } } }, "additionalProperties": false },
+          { "type": "object", "required": ["sha", "engineer_email"], "properties": { "sha": { "type": "string", "pattern": "^[0-9a-f]{7}$" }, "engineer_email": { "type": "string", "format": "email" } }, "additionalProperties": false },
+          { "type": "object", "required": ["bucket_start"], "properties": { "bucket_start": { "type": "string", "format": "date-time" } }, "additionalProperties": false }
+        ]
+      },
+      "SubmissionResult": {
+        "type": "object",
+        "required": ["correct", "detail", "attempts_used", "attempts_limit"],
+        "properties": { "correct": { "type": "boolean" }, "detail": { "type": "string" }, "attempts_used": { "type": "integer", "minimum": 1 }, "attempts_limit": { "type": ["integer", "null"], "minimum": 1 } },
+        "additionalProperties": false
+      }
+    }
+  }
+}

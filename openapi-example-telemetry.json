@@ -1,0 +1,72 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Log-analysis challenge example telemetry API",
+    "version": "1.0.0",
+    "description": "Read-only example telemetry endpoints for logs, deploys, service ownership, and on-call data. Every /v1 request requires a Bearer API key."
+  },
+  "servers": [{ "url": "https://challenge.janitor.check24.global", "description": "Challenge API host (the real host is provided separately)" }],
+  "tags": [{ "name": "Telemetry", "description": "Read incident telemetry and supporting data" }],
+  "paths": {
+    "/v1/{client}/{dataset}/logs": {
+      "get": {
+        "tags": ["Telemetry"], "operationId": "getLogs", "summary": "Read filtered log lines", "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/client" }, { "$ref": "#/components/parameters/dataset" }, { "$ref": "#/components/parameters/serviceFilter" }, { "$ref": "#/components/parameters/levelFilter" }, { "$ref": "#/components/parameters/since" }, { "$ref": "#/components/parameters/until" }, { "$ref": "#/components/parameters/limit" }, { "$ref": "#/components/parameters/cursor" }, { "$ref": "#/components/parameters/order" }
+        ],
+        "responses": { "200": { "$ref": "#/components/responses/ndjsonLogs" }, "400": { "$ref": "#/components/responses/badParam" }, "401": { "$ref": "#/components/responses/unauthorized" }, "403": { "$ref": "#/components/responses/notStarted" } }
+      }
+    },
+    "/v1/{client}/{dataset}/teams": {
+      "get": {
+        "tags": ["Telemetry"], "operationId": "getTeams", "summary": "Read service ownership data", "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/client" }, { "$ref": "#/components/parameters/dataset" }],
+        "responses": { "200": { "description": "Team records", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Team" } } } } }, "400": { "$ref": "#/components/responses/badParam" }, "401": { "$ref": "#/components/responses/unauthorized" }, "403": { "$ref": "#/components/responses/notStarted" } }
+      }
+    },
+    "/v1/{client}/{dataset}/oncall": {
+      "get": {
+        "tags": ["Telemetry"], "operationId": "getOncall", "summary": "Read on-call coverage", "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "$ref": "#/components/parameters/client" }, { "$ref": "#/components/parameters/dataset" },
+          { "name": "at", "in": "query", "required": true, "description": "RFC 3339 UTC instant covered by the requested shift.", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "team", "in": "query", "description": "Optionally restrict results to one team.", "schema": { "type": "string", "minLength": 1 } }
+        ],
+        "responses": { "200": { "description": "On-call records", "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Oncall" } } } } }, "400": { "$ref": "#/components/responses/badParam" }, "401": { "$ref": "#/components/responses/unauthorized" }, "403": { "$ref": "#/components/responses/notStarted" } }
+      }
+    },
+    "/v1/{client}/{dataset}/deploys": {
+      "get": {
+        "tags": ["Telemetry"], "operationId": "getDeploys", "summary": "Read deploy history", "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "$ref": "#/components/parameters/client" }, { "$ref": "#/components/parameters/dataset" }, { "$ref": "#/components/parameters/since" }, { "$ref": "#/components/parameters/until" }, { "name": "service", "in": "query", "description": "Optionally restrict results to one service.", "schema": { "type": "string", "pattern": "^[a-z][a-z0-9]*$" } }],
+        "responses": { "200": { "$ref": "#/components/responses/ndjsonDeploys" }, "400": { "$ref": "#/components/responses/badParam" }, "401": { "$ref": "#/components/responses/unauthorized" }, "403": { "$ref": "#/components/responses/notStarted" } }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": { "bearerAuth": { "type": "http", "scheme": "bearer", "description": "Opaque team API key. Keep it out of shell history and command-line arguments." } },
+    "parameters": {
+      "client": { "name": "client", "in": "path", "required": true, "description": "Client surface used for scoring attribution.", "schema": { "type": "string", "enum": ["cli", "mcp"] } },
+      "dataset": { "name": "dataset", "in": "path", "required": true, "schema": { "type": "string", "enum": ["dev", "eval"] } },
+      "serviceFilter": { "name": "service", "in": "query", "description": "Repeatable service filter; values are ORed.", "schema": { "type": "array", "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*$" } }, "style": "form", "explode": true },
+      "levelFilter": { "name": "level", "in": "query", "description": "Repeatable severity filter; values are ORed.", "schema": { "type": "array", "items": { "type": "string", "enum": ["info", "warn", "error", "fatal"] } }, "style": "form", "explode": true },
+      "since": { "name": "since", "in": "query", "description": "Inclusive RFC 3339 lower bound.", "schema": { "type": "string", "format": "date-time" } },
+      "until": { "name": "until", "in": "query", "description": "Exclusive RFC 3339 upper bound.", "schema": { "type": "string", "format": "date-time" } },
+      "limit": { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 1000, "default": 100 } },
+      "cursor": { "name": "cursor", "in": "query", "description": "Opaque cursor returned by a previous logs response.", "schema": { "type": "string" } },
+      "order": { "name": "order", "in": "query", "schema": { "type": "string", "enum": ["asc", "desc"], "default": "asc" } }
+    },
+    "responses": {
+      "ndjsonLogs": { "description": "NDJSON log records followed by one pagination and rate-limit trailer line.", "content": { "application/x-ndjson": { "schema": { "type": "string" } } } },
+      "ndjsonDeploys": { "description": "NDJSON deploy records followed by one pagination and rate-limit trailer line.", "content": { "application/x-ndjson": { "schema": { "type": "string" } } } },
+      "badParam": { "description": "Malformed or out-of-range request.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "unauthorized": { "description": "Missing, malformed, revoked, or unknown API key.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "notStarted": { "description": "The required dataset run has not been started.", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+    },
+    "schemas": {
+      "Error": { "type": "object", "required": ["error"], "properties": { "error": { "type": "string" }, "detail": { "type": "string" } }, "additionalProperties": false },
+      "Team": { "type": "object", "required": ["team", "services"], "properties": { "team": { "type": "string", "minLength": 1 }, "services": { "type": "array", "items": { "type": "string" }, "minItems": 1, "uniqueItems": true } }, "additionalProperties": false },
+      "Oncall": { "type": "object", "required": ["team", "engineer", "shift"], "properties": { "team": { "type": "string", "minLength": 1 }, "engineer": { "type": "object", "required": ["name", "email", "handle"], "properties": { "name": { "type": "string", "minLength": 1 }, "email": { "type": "string", "format": "email" }, "handle": { "type": "string", "pattern": "^@[A-Za-z0-9_]+$" } }, "additionalProperties": false }, "shift": { "type": "object", "required": ["from", "until"], "properties": { "from": { "type": "string", "format": "date-time" }, "until": { "type": "string", "format": "date-time" } }, "additionalProperties": false } }, "additionalProperties": false }
+    }
+  }
+}
