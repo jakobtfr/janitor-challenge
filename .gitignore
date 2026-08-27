@@ -4,3 +4,4 @@ mcp-python/__pycache__/
 mcp-python/*.py[cod]
 mcp-python/*.egg-info/
 opencode.json
+.env

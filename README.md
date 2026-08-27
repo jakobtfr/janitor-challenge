@@ -3,6 +3,17 @@
 Starter repository for incident-analysis tooling.
 Add the opencode.json to the root of the repository and configure it to use the mcp server if you are in this group.
 
+## Configuration
+
+Copy `.env.example` to `.env` and set `JANITOR_API_KEY`. The Node MCP server,
+Python MCP server, and CLI load this file when the variable is not already set
+in their environment. Use an environment variable in OpenCode or CI when you
+do not want a local `.env` file.
+
+The `.env` file is intentionally ignored by Git. It is sourced as shell input,
+so only use a file you trust. Commands that do not yet call an upstream service
+do not require the key.
+
 ## Choose your bootstrap
 
 Keep the folder for your group and delete the others:

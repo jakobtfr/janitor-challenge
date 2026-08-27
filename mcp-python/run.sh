@@ -3,6 +3,7 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${script_dir}/../scripts/load-config.sh"
 python="${script_dir}/.venv/bin/python"
 
 if [[ ! -x "${python}" ]]; then
