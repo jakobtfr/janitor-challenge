@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: analyze-incident [--help]
+
+Bootstrap command-line interface for Janitor Challenge incident analysis.
+
+Options:
+  -h, --help  Show this help message and exit.
+
+This starter command does not yet run an analysis. Add incident-analysis
+subcommands here as the CLI grows.
+EOF
+}
+
+case "${1:-}" in
+  -h|--help)
+    usage
+    ;;
+  '')
+    usage
+    ;;
+  *)
+    printf 'analyze-incident: unrecognized option: %s\n\n' "$1" >&2
+    usage >&2
+    exit 64
+    ;;
+esac
