@@ -1,12 +1,6 @@
----
-name: execute-incident-analysis-level
-description: Use always when the user asks for a incident analysis and everything in the spectrum, log analysis, incident analysis, etc.
-compatibility: opencode
----
-
 When executing a level make use of the incident-analysis-boundary skill.
 
-A level is run with path parameters:
+A level is run with parameters:
 - `dataset`: `dev` or `eval` - datasets are different so the solution for dev is not the same as the solution for eval.
 - `level`: `l0`, `l1`, `l2`, `l3`, `l4`, `l5`, or `l6`
 
