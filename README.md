@@ -1,6 +1,7 @@
 # Janitor Challenge
 
 Starter repository for incident-analysis tooling.
+Add the opencode.json to the root of the repository and configure it to use the mcp server if you are in this group.
 
 ## Choose your bootstrap
 

@@ -39,5 +39,6 @@ installs Node dependencies before starting the server.
 
 ## Example tool
 
-`say_hello` returns `Hello, world!`. Add new tools in
+`say_hello` accepts a required `name` string and returns, for example,
+`Hello, Ada!`. Add new tools in
 [`server.mjs`](server.mjs) using `server.registerTool()`.

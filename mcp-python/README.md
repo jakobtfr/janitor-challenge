@@ -34,3 +34,8 @@ Add this local server to your `opencode.json`:
 ```
 
 Replace the placeholder with the absolute path to this repository.
+
+## Example tool
+
+`say_hello` accepts a required `name` string and returns, for example,
+`Hello, Ada!`. Add new tools in [`server.py`](server.py).
